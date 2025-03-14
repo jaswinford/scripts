@@ -17,12 +17,12 @@ if ! command -v xargs &> /dev/null; then
 fi
 
 # Find processes with deleted files open, and get the file descriptor.
-lsof +L1 2>/dev/null | awk '$9 == "(deleted)" {print $2, $4, $10}' | while read pid fd filepath; do
+lsof +L1 2>/dev/null | grep '(deleted)' | grep /var/log/apache | awk '{split($4, a, /[^0-9]/); print $2, a[1], $10}' | while read pid fd filepath; do
   proc_path="/proc/$pid/fd/$fd"
 
   if [[ -e "$proc_path" ]]; then
     echo "Attempting to remove: $proc_path (PID: $pid, FD: $fd, File: $filepath)"
-    # rm -f "$proc_path"
+    truncate -s0 $proc_path
     if [[ $? -eq 0 ]]; then
       echo "Successfully removed: $proc_path"
     else
